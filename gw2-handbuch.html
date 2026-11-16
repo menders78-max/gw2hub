@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GW2-Handbuch</title>
+<style>
+:root{--bg:#e8ecec;--pn:#fff;--tx:#1d2a33;--mu:#5d6c76;--br:#c5d0d3;--ac:#8a6414;--ok:#1f7f73;--in:#f3f6f6}
+@media(prefers-color-scheme:dark){:root{--bg:#121a21;--pn:#1b262f;--tx:#e6e1d3;--mu:#97a5ad;--br:#2f3d48;--ac:#d1a548;--ok:#4fb3a5;--in:#16212a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,Segoe UI,sans-serif}
+h1,h3,.big{font-family:Palatino Linotype,Book Antiqua,Georgia,serif}
+header{padding:18px 20px 0;max-width:1200px;margin:auto}
+h1{margin:0 0 10px;font-size:26px;color:var(--ac)}
+nav{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--br)}
+nav button{border:0;background:none;color:var(--mu);padding:8px 14px;font:inherit;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button.on{color:var(--tx);border-color:var(--ac);font-weight:600}
+main{max-width:1200px;margin:auto;padding:16px 20px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--pn);border:1px solid var(--br);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.grid .card{margin:0}
+.big{display:block;font-size:24px;color:var(--ac)}
+small,.mu{color:var(--mu);font-size:13px}
+.bar{height:8px;background:var(--in);border-radius:4px;margin:6px 0;overflow:hidden;border:1px solid var(--br)}
+.bar i{display:block;height:100%;background:var(--ok)}
+button,select,input,textarea{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--br);border-radius:4px;padding:4px 8px}
+button{cursor:pointer;background:var(--pn)}
+button:hover{border-color:var(--ac)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input[type=checkbox]{width:17px;height:17px;accent-color:var(--ok)}
+textarea{width:100%;min-height:70px;display:block}
+label{display:block;margin:6px 0;font-size:13px;color:var(--mu)}
+label input:not([type=checkbox]){width:100%;display:block}
+.wrap{overflow-x:auto;margin:10px 0}
+table{border-collapse:collapse;width:100%;background:var(--pn)}
+td,th{border:1px solid var(--br);padding:4px 8px;text-align:left;vertical-align:top}
+th.v{font-size:12px;text-align:center}td:nth-child(n+4){text-align:center}
+tr.dn{opacity:.45}
+ol{padding-left:22px}li{margin:5px 0}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 12px}
+.t{font-weight:700;font-size:17px;width:100%}
+.log div{padding:3px 0;border-bottom:1px solid var(--br);font-size:13px}
+</style></head><body>
+<header><h1>Mein GW2-Handbuch</h1><nav id="nv"></nav></header><main id="v"></main>
+<script>
+/* Daten: ein JSON-Objekt (S) in localStorage. Neue Tabs: Eintrag in T + Funktion in V ergänzen. */
+const API='https://api.guildwars2.com',$=s=>document.querySelector(s);
+const E=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PR={Elementalist:'Elementarmagier',Ranger:'Waldläufer',Warrior:'Krieger',Guardian:'Wächter',Thief:'Dieb',Engineer:'Ingenieur',Necromancer:'Nekromant',Mesmer:'Mesmer',Revenant:'Widergänger'};
+const T=[['ov','Übersicht'],['rot','Rotation'],['map','Karten'],['bld','Builds'],['tpl','Vorlagen'],['set','Protokoll & Sync']];
+const pm=t=>t.split('\n').map(l=>l.trim()).filter(Boolean).map((l,i)=>{const a=l.split('|').map(x=>x.trim());const [r,n,p]=a.length>1?a:['Sonstige',a[0],2];return{id:'m'+Date.now()+i,r,n,p:+p||2,a:''}});
+const SEED=`Kerntyria|Königintal|3
+Kerntyria|Kessex-Hügel|2
+Kerntyria|Gendarran-Felder|2
+Heart of Thorns|Verworrene Tiefen|2
+Path of Fire|Kristalloase|2
+Path of Fire|Wüstenhochland|2
+Path of Fire|Elon-Flusslande|2
+Path of Fire|Die Verwüstung|2
+End of Dragons|Provinz Seitung|2
+End of Dragons|Echovald-Wildnis|2
+End of Dragons|Drachenende|2`;
+const KEYS='1 Autoangriff · 2–5 Waffenfertigkeiten · 6 Heilung · 7–9 Hilfsfertigkeiten · 0 Elite';
+const B=(id,name,prof,weapons,keys,notes)=>({id,name,prof,weapons,gear:'',keys,notes});
+let S;try{S=JSON.parse(localStorage.getItem('gw2hb'))}catch(e){}
+S=S||{v:1,key:'',chars:{},maps:pm(SEED),builds:[
+B('b1','Elementarmagier – Solo Open World','Elementarmagier','Zepter / Kriegshorn (fest)',KEYS+'\nAttunements F1–F4 wechseln, Zepter je nach Element.','Einfach & robust: wenige Tasten, nichts anderes tauschen.'),
+B('b2','Waldläufer – Langbogen + Ungezähmter','Waldläufer · Ungezähmter','Langbogen (fest)',KEYS+'\nF1 Entfesseln, F2–F4 Tierfertigkeiten.','Fester Fernkampf-Build für Karten ohne Nahkampfstress.'),
+B('b3','Power-Schnelligkeits-Ungezähmter','Waldläufer · Ungezähmter','Hammer / Speer (fest)',KEYS+'\nF1 Entfesseln; Hammer 2–5 und Speer-Fertigkeiten als Burst.','Power-Variante mit Schnelligkeit für Kartenwechsel.')],log:[],acc:{},rotAll:false};
+let tab='ov',sel=null;
+const save=()=>localStorage.setItem('gw2hb',JSON.stringify(S));
+const lg=m=>{S.log.unshift({t:Date.now(),m});S.log=S.log.slice(0,300);save()};
+const names=()=>Object.keys(S.chars);
+const pct=c=>S.maps.length?Math.round(100*S.maps.filter(m=>S.chars[c].done.includes(m.id)).length/S.maps.length):0;
+const open=c=>S.maps.filter(m=>!S.chars[c].done.includes(m.id));
+const rot=c=>open(c).filter(m=>S.rotAll||m.a===c).sort((a,b)=>b.p-a.p);
+const bar=p=>`<div class=bar><i style="width:${p}%"></i></div>`;
+const gold=v=>`${Math.floor(v/1e4).toLocaleString('de-DE')} <small>g</small> ${Math.floor(v%1e4/100)} <small>s</small> ${v%100} <small>k</small>`;
+const bd=id=>S.builds.find(b=>b.id===id);
+const emp='<div class=card>Noch keine Charaktere. Trage unter „Protokoll & Sync“ deinen API-Key ein und synchronisiere – oder lege einen Charakter manuell an.</div>';
+const V={
+ov(){const a=S.acc,n=names(),avg=n.length?Math.round(n.reduce((s,c)=>s+pct(c),0)/n.length):0;
+return `<div class=grid>`+[['Gold',a.gold!=null?gold(a.gold):'–'],['Astraler Ruhm',a.aa??'–'],['Erfolgspunkte (berechnet)',a.ap??'–'],['Ø Weltabschluss',avg+' %']].map(([k,v])=>`<div class=card><small>${k}</small><b class=big>${v}</b></div>`).join('')+`</div><p class=mu>Stand: ${a.t?new Date(a.t).toLocaleString('de-DE'):'noch nicht synchronisiert'} · ${n.length} Charaktere · Weltabschluss = erledigte Karten dieser Liste</p>`+(n.length?`<div class=grid>`+n.map(c=>{const o=S.chars[c],r=rot(c)[0],b=bd(o.build);return `<div class=card><b>${E(c)}</b><br><small>${PR[o.prof]||E(o.prof)} · Stufe ${o.lvl||'?'}</small>${bar(pct(c))}<small>${pct(c)} % · ${open(c).length} Karten offen</small><br>Nächste Karte: <b>${r?E(r.n):'–'}</b><br><small>Build: ${b?E(b.name):'–'}</small><br><button data-go="${E(c)}">Rotation öffnen</button></div>`}).join('')+`</div>`:emp)},
+rot(){const n=names();if(!n.length)return emp;if(!n.includes(sel))sel=n[0];const o=S.chars[sel],r=rot(sel),p=pct(sel),b=bd(o.build);
+return `<select data-sel>${n.map(c=>`<option ${c==sel?'selected':''}>${E(c)}</option>`).join('')}</select> <label style="display:inline"><input type=checkbox data-all ${S.rotAll?'checked':''}> alle offenen Karten statt nur zugeteilte</label>
+<div class=card style="margin-top:12px"><b>${p} % Weltabschluss</b>${bar(p)}<small>${S.maps.length-open(sel).length} von ${S.maps.length} Karten erledigt – erledigte werden nie eingeplant.</small></div>
+<div class=card><h3>Kartenrotation</h3><ol>${r.map(m=>`<li><label style="display:inline;color:var(--tx);font-size:15px"><input type=checkbox data-done="${m.id}"> ${E(m.n)}</label> <small>${E(m.r)} · Prio ${'★'.repeat(m.p)}${m.a&&m.a!==sel?' · zugeteilt: '+E(m.a):''}</small></li>`).join('')||'<li>Nichts offen oder nichts zugeteilt – siehe „Karten“.</li>'}</ol></div>
+<div class=card><h3>Build & Tasten</h3><select data-c="${E(sel)}" data-f=build><option value="">– kein Build –</option>${S.builds.map(x=>`<option value="${x.id}" ${x.id==o.build?'selected':''}>${E(x.name)}</option>`).join('')}</select>${b?`<p><b>${E(b.weapons)}</b><br><small style="white-space:pre-line">${E(b.keys)}</small></p>`:''}</div>
+<div class=card><h3>Notizen</h3><label>Reittiere<textarea data-c="${E(sel)}" data-f=mounts>${E(o.mounts)}</textarea></label><label>Fehlende Freischaltungen<textarea data-c="${E(sel)}" data-f=unl>${E(o.unl)}</textarea></label></div>`},
+map(){const n=names();return `<button data-auto>Offene Karten automatisch verteilen</button> <small>(gleichmäßig auf Charaktere, bei denen die Karte noch offen ist)</small><div class=wrap><table><tr><th>Karte<th>Prio<th>Zuteilung${n.map(c=>`<th class=v title="${E(c)}">${E(c.slice(0,9))}`).join('')}<th></tr>`+S.maps.map((m,i)=>{const all=n.length&&n.every(c=>S.chars[c].done.includes(m.id));return `<tr class="${all?'dn':''}"><td>${E(m.n)}<br><small>${E(m.r)}${all?' · überall erledigt':''}</small><td><select data-m=${i} data-f=p>${[1,2,3].map(x=>`<option value=${x} ${x==m.p?'selected':''}>${'★'.repeat(x)}</option>`).join('')}</select><td><select data-m=${i} data-f=a><option value="">–</option>${n.map(c=>`<option ${c==m.a?'selected':''}>${E(c)}</option>`).join('')}</select>${n.map(c=>`<td><input type=checkbox data-x="${E(c)}|${m.id}" ${S.chars[c].done.includes(m.id)?'checked':''}>`).join('')}<td><button data-delmap=${i} title="Karte entfernen">✕</button>`}).join('')+`</table></div><div class=card><h3>Karten hinzufügen</h3><small>Eine pro Zeile: „Region|Name|Prio 1–3“ oder nur der Name.</small><textarea id=bm placeholder="Path of Fire|Vabbi|2"></textarea><button data-addmaps>Hinzufügen</button></div>`},
+bld(){return S.builds.map((b,i)=>{const u=names().filter(c=>S.chars[c].build===b.id);return `<div class=card><input class=t data-b=${i} data-f=name value="${E(b.name)}"><div class=g2>${[['prof','Beruf / Spezialisierung'],['weapons','Feste Waffen'],['gear','Ausrüstung, Runen, Sigille']].map(([f,l])=>`<label>${l}<input data-b=${i} data-f=${f} value="${E(b[f])}"></label>`).join('')}</div><label>Tasten & Fertigkeiten<textarea data-b=${i} data-f=keys>${E(b.keys)}</textarea></label><label>Notizen<textarea data-b=${i} data-f=notes>${E(b.notes)}</textarea></label><small>Genutzt von: ${u.map(E).join(', ')||'–'}</small> <button data-delb=${i}>Löschen</button></div>`}).join('')+`<button data-addb>+ Neuer Build</button>`},
+tpl(){const n=names(),m=S.mounts;return (n.length?`<div class=wrap><table><tr><th>Charakter<th>Build (Handbuch)<th>Waffen<th>Ausrüstungsvorlagen<th>Buildvorlagen</tr>`+n.map(c=>{const o=S.chars[c],b=bd(o.build);return `<tr><td>${E(c)}<br><small>${PR[o.prof]||''}</small><td style="text-align:left">${b?E(b.name):'–'}<td style="text-align:left">${b?E(b.weapons):'–'}<td style="text-align:left">${E((o.eq||[]).join(', '))||'–'}<td style="text-align:left">${E((o.bt||[]).join(', '))||'–'}`}).join('')+`</table></div>`:emp)+`<div class=card><h3>Reittiere (Konto)</h3>${m?`<p>Freigeschaltet: ${E(m.have.join(', '))||'–'}</p><p><b>Fehlt:</b> ${E(m.miss.join(', '))||'nichts 🎉'}</p>`:'<small>Nach der Synchronisierung sichtbar.</small>'}</div>`},
+set(){return `<div class=card><h3>API-Key</h3><small>Wird nur in diesem Browser gespeichert. Empfohlene Rechte: account, characters, progression, wallet, builds, unlocks.</small><input id=k type=password value="${E(S.key)}" placeholder="API-Key einfügen"><p><button data-sync>Speichern & synchronisieren</button> <span id=st class=mu></span></p></div>
+<div class=card><h3>Charakter manuell</h3><input id=nc placeholder="Charaktername" style="width:220px"> <button data-addc>Anlegen</button></div>
+<div class=card><h3>Sicherung</h3><button data-exp>Exportieren (JSON)</button> <input type=file data-imp accept=.json></div>
+<div class="card log"><h3>Änderungsprotokoll</h3>${S.log.map(l=>`<div><small>${new Date(l.t).toLocaleString('de-DE')}</small> ${E(l.m)}</div>`).join('')||'<small>Noch keine Änderungen.</small>'}</div>`}};
+function r(){$('#nv').innerHTML=T.map(([k,l])=>`<button data-tab=${k} class="${k==tab?'on':''}">${l}</button>`).join('');$('#v').innerHTML=V[tab]()}
+function tg(c,id,v){const o=S.chars[c],m=S.maps.find(x=>x.id==id);o.done=o.done.filter(x=>x!=id);if(v)o.done.push(id);lg(`${c}: ${m.n} ${v?'abgeschlossen':'wieder geöffnet'} (jetzt ${pct(c)} %)`);r()}
+function auto(){const n=names(),k={};n.forEach(c=>k[c]=0);let z=0;[...S.maps].sort((a,b)=>b.p-a.p).forEach(m=>{const o=n.filter(c=>!S.chars[c].done.includes(m.id)).sort((a,b)=>k[a]-k[b]||pct(b)-pct(a));m.a=o[0]||'';if(o[0]){k[o[0]]++;z++}});lg(`Karten automatisch verteilt (${z} offene)`);r()}
+async function g(p,auth=1){const x=await fetch(API+p+(p.includes('?')?'&':'?')+'lang=de'+(auth?'&access_token='+S.key:''));if(!x.ok)throw new Error(p.split('?')[0]+' → '+x.status);return x.json()}
+async function sync(){const st=$('#st'),er=[],old={...S.acc},t=f=>f().catch(e=>er.push(e.message));st.textContent='Lade …';let dap=0;
+await Promise.all([
+t(async()=>{const cs=await g('/v2/characters?ids=all');cs.forEach(c=>{let o=S.chars[c.name];if(!o){o=S.chars[c.name]={done:[],mounts:'',unl:'',build:''};lg('Charakter neu: '+c.name)}o.prof=c.profession;o.lvl=c.level});
+await Promise.all(cs.map(c=>t(async()=>{const e=encodeURIComponent(c.name);S.chars[c.name].eq=(await g(`/v2/characters/${e}/equipmenttabs?tabs=all`)).map(x=>x.name||'Vorlage '+x.tab);S.chars[c.name].bt=(await g(`/v2/characters/${e}/buildtabs?tabs=all`)).map(x=>x.build.name||'Vorlage '+x.tab)})))}),
+t(async()=>{const w=await g('/v2/account/wallet'),f=i=>(w.find(x=>x.id===i)||{}).value;S.acc.gold=f(1);S.acc.aa=f(63)}),
+t(async()=>{const a=await g('/v2/account');dap=(a.daily_ap||0)+(a.monthly_ap||0);S.acc.name=a.name}),
+t(async()=>{const a=await g('/v2/account/achievements'),d={},ch=[];for(let i=0;i<a.length;i+=150)ch.push(a.slice(i,i+150).map(x=>x.id).join(','));
+(await Promise.all(ch.map(c=>g('/v2/achievements?ids='+c,0)))).flat().forEach(x=>d[x.id]=x);let s=0;
+a.forEach(x=>{const q=d[x.id];if(!q||!q.tiers)return;let b=0,all=0;q.tiers.forEach(y=>{all+=y.points;if(x.done||x.current>=y.count)b+=y.points});b+=(x.repeated||0)*all;s+=q.point_cap!=null?Math.min(b,q.point_cap):b});S.acc.apb=s}),
+t(async()=>{const h=await g('/v2/account/mounts/types'),a=await g('/v2/mounts/types?ids=all',0);S.mounts={have:a.filter(m=>h.includes(m.id)).map(m=>m.name),miss:a.filter(m=>!h.includes(m.id)).map(m=>m.name)}})]);
+if(S.acc.apb!=null)S.acc.ap=S.acc.apb+dap;S.acc.t=Date.now();
+if(old.aa!=null&&old.aa!==S.acc.aa)lg(`Astraler Ruhm: ${old.aa} → ${S.acc.aa}`);
+if(old.ap!=null&&old.ap!==S.acc.ap)lg(`Erfolgspunkte: ${old.ap} → ${S.acc.ap}`);
+if(old.gold!=null&&old.gold!==S.acc.gold)lg(`Gold: ${Math.floor(old.gold/1e4)} g → ${Math.floor(S.acc.gold/1e4)} g`);
+lg('Synchronisierung'+(er.length?' mit Fehlern: '+er.join('; '):' erfolgreich'));r();
+$('#st').textContent=er.length?'Teilweise fehlgeschlagen: '+er.join('; ')+' (403 = Recht fehlt am Key, 401 = Key ungültig)':'Fertig.'}
+document.addEventListener('click',e=>{const d=e.target.dataset;
+if(d.tab){tab=d.tab;r()}
+else if(d.go){tab='rot';sel=d.go;r()}
+else if('auto' in d)auto();
+else if(d.delmap!=null){lg('Karte entfernt: '+S.maps.splice(+d.delmap,1)[0].n);r()}
+else if('addmaps' in d){const a=pm($('#bm').value);S.maps.push(...a);lg(a.length+' Karten hinzugefügt');r()}
+else if('addb' in d){S.builds.push(B('b'+Date.now(),'Neuer Build','','','',''));lg('Build angelegt');r()}
+else if(d.delb!=null){lg('Build gelöscht: '+S.builds.splice(+d.delb,1)[0].name);r()}
+else if('addc' in d){const n=$('#nc').value.trim();if(n&&!S.chars[n]){S.chars[n]={done:[],mounts:'',unl:'',build:'',prof:''};lg('Charakter angelegt: '+n);r()}}
+else if('sync' in d){S.key=$('#k').value.trim();save();sync()}
+else if('exp' in d){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='gw2-handbuch-'+new Date().toISOString().slice(0,10)+'.json';a.click()}});
+document.addEventListener('change',e=>{const t=e.target,d=t.dataset,v=t.type=='checkbox'?t.checked:t.value;
+if('sel' in d){sel=v;r()}
+else if('all' in d){S.rotAll=v;lg('Rotation zeigt '+(v?'alle offenen Karten':'nur zugeteilte Karten'));r()}
+else if(d.done)tg(sel,d.done,true);
+else if(d.x){const[c,id]=d.x.split('|');tg(c,id,v)}
+else if(d.c){S.chars[d.c][d.f]=v;lg(`${d.c}: ${d.f=='build'?'Build → '+(bd(v)||{name:'–'}).name:d.f=='mounts'?'Reittiernotiz':'Freischaltungsnotiz'} geändert`);if(d.f=='build')r()}
+else if(d.m!=null){const m=S.maps[d.m];m[d.f]=d.f=='p'?+v:v;lg(`Karte ${m.n}: ${d.f=='p'?'Priorität '+'★'.repeat(+v):'Zuteilung '+(v||'–')}`);r()}
+else if(d.b!=null){S.builds[d.b][d.f]=v;lg(`Build „${S.builds[d.b].name}“: ${d.f} geändert`)}
+else if('imp' in d&&t.files[0]){t.files[0].text().then(x=>{S=JSON.parse(x);lg('Sicherung importiert');r()}).catch(()=>alert('Datei ungültig.'))}});
+r();
+</script></body></html>
